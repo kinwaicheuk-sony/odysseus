@@ -1,5 +1,95 @@
 # Odysseus
 
+## Quick start
+
+### Odysseus
+Start the UI
+```
+docker compose up -d --build
+```
+
+Stop the UI
+```
+docker compose down
+```
+
+Start the UI again (without rebuilding)
+```
+docker compose up -d
+```
+
+Change the config in `.env` and restart the container to apply changes.
+
+### Ollama
+
+```
+OLLAMA_KEEP_ALIVE=30m OLLAMA_HOST=0.0.0.0:11434 ollama serve
+```
+
+`OLLAMA_HOST=0.0.0.0:11434` is required for Odysseus in Docker to detect the Ollama server running on the host.
+
+#### Useful commands
+To check if it is running as a service, you can run the following command in your terminal:
+
+```bash
+systemctl status ollama
+```
+
+To restart the service
+```bash
+sudo systemctl restart ollama
+```
+
+```bash
+sudo systemctl edit ollama
+```
+
+#### Trouble shooting auto start
+I used to have 4 models. But upon reboot, I only have 1. It turns out I have `ollama` running as a service, but the service is running as `ollama` user, which does not have access to my home directory.
+
+The whole thing happened when I created a systemd service for Ollama so that it can be started automatically on boot. The service file is located at `/etc/systemd/system/ollama.service` and have the following content.
+
+```bash
+[Unit]
+Description=Ollama Service
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/ollama serve
+User=ollama
+Group=ollama
+Restart=always
+RestartSec=3
+Environment="PATH=/home/ravencheuk/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand:/home/ravencheuk/.vscode-server/data/User/globalStorage/github.copilot-chat/copilotCli:/home/ravencheuk/.vscode-server/cli/servers/Stable-8761a5560cfd65fdd19ce7e2bd18dab5c0a4d84e/server/bin/remote-cli:/home/ravencheuk/miniforge3/bin:/home/ravencheuk/miniforge3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+
+[Install]
+WantedBy=default.target
+```
+
+As you can see the `User` and `Group` are set to `ollama`.
+
+A quick fix is to change the `User` and `Group` to your username.
+
+Somehow Claude Sonnet 5 recommended me this
+
+```bash
+sudo systemctl edit ollama
+```
+
+```bash
+[Service]
+User=ravencheuk
+Group=ravencheuk
+Environment="OLLAMA_MODELS=/home/ravencheuk/.ollama/models"
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_KEEP_ALIVE=30m"
+```
+
+It works, but the solution is very ugly.
+It's way better to directly edit the service file at `/etc/systemd/system/ollama.service` and change the `User` and `Group` to your username.
+
+
+
 > **Branch note:** `dev` is the default branch and contains the latest development changes, but it may be unstable. For the more stable curated branch, use [`main`](https://github.com/pewdiepie-archdaemon/odysseus/tree/main).
 
 ```
