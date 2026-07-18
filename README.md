@@ -1,10 +1,30 @@
 ## Quick start
 
 ### Odysseus
-Start the UI
+
+Copy `.env.example` to `.env` and edit add the following entry to allow LAN access to the Odysseus UI.
+
+```
+APP_BIND=0.0.0.0
+```
+
+Then build the container
 ```
 docker compose up -d --build
 ```
+
+The UI can be accessed at `http://<your-ip>:7000` if you are on the same LAN.
+
+Check the password immediately after the first build by running
+
+```
+docker compose logs odysseus
+```
+
+Otherwise you will lose the password. If that happens, delete `data/auth.json` and rebuild the container to generate a new password.
+
+
+#### Useful commands
 
 Stop the UI
 ```
@@ -16,9 +36,50 @@ Start the UI again (without rebuilding)
 docker compose up -d
 ```
 
-Change the config in `.env` and restart the container to apply changes.
+
 
 ### Ollama
+
+#### Installaion
+
+```
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+#### Auto start
+
+Use this command to override the default service configuration. It will create a new file at `/etc/systemd/system/ollama.service.d/override.conf` with your changes.
+
+```
+sudo systemctl edit ollama
+```
+
+```bash
+[Service]
+Environment="OLLAMA_MODELS=/data/.ollama/models"
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_KEEP_ALIVE=30m"
+```
+
+For `OLLAMA_MODELS`, make sure the folder exists and is writable by the `ollama` user. You can create it with the following command:
+
+```
+mkdir -p /data/.ollama/
+sudo chown -R ollama:ollama /data/.ollama
+```
+
+
+Then reload the systemd daemon and restart the service.
+
+```
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+```
+
+
+<details>
+  <summary>The following instructions are old and not recommended. You can skip them if you have already set up the auto start.</summary>
+#### Manual start
 
 ```
 OLLAMA_KEEP_ALIVE=30m OLLAMA_HOST=0.0.0.0:11434 ollama serve
@@ -86,7 +147,9 @@ Environment="OLLAMA_KEEP_ALIVE=30m"
 It works, but the solution is very ugly.
 It's way better to directly edit the service file at `/etc/systemd/system/ollama.service` and change the `User` and `Group` to your username.
 
+</details>
 
+---------------------
 
 > **Branch note:** `dev` is the default branch and contains the latest development changes, but it may be unstable. For the more stable curated branch, use [`main`](https://github.com/pewdiepie-archdaemon/odysseus/tree/main).
 
